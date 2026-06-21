@@ -224,14 +224,37 @@ export async function createWhiteboard() {
 
 `api` 파일에는 `useQuery`, `useMutation` 같은 React hook을 두지 않습니다. API 파일은 순수 요청 함수만 담당합니다.
 
-## Query 파일 네이밍
+## Index 파일 네이밍
 
-Query 파일은 도메인명 뒤에 `.query.ts` suffix를 붙입니다.
+폴더의 public export를 담당하는 파일은 `index.ts`를 사용합니다. App Router 페이지 파일은 항상 `page.tsx`이므로, `index.ts`는 라우트 엔트리가 아니라 모듈 export 엔트리입니다.
 
 ```text
+src/app/whiteboard/_components/index.ts
+src/app/whiteboard/_components/screen/index.ts
+src/app/whiteboard/_api/index.ts
+src/app/whiteboard/_query/index.ts
+src/app/whiteboard/_utils/index.ts
+src/app/whiteboard/_types/index.ts
+src/app/whiteboard/_constants/index.ts
+```
+
+`index.ts`는 명시적 re-export를 기본으로 합니다.
+
+```ts
+export { WhiteboardCanvas } from './WhiteboardCanvas';
+export { useWhiteboardQuery } from './whiteboard.query';
+export type { Whiteboard } from './whiteboard.type';
+```
+
+## Query 파일 네이밍
+
+Query key 파일은 도메인명 뒤에 `.keys.ts` suffix를 붙이고, Query options/hook 파일은 도메인명 뒤에 `.query.ts` suffix를 붙입니다.
+
+```text
+whiteboard.keys.ts
 whiteboard.query.ts
+user.keys.ts
 user.query.ts
-auth.query.ts
 ```
 
 TanStack Query를 기준으로 다음 네이밍을 사용합니다.
@@ -255,6 +278,8 @@ export function useWhiteboardQuery(id: string) {
 
 | 대상 | 네이밍 |
 | --- | --- |
+| Query Key 파일 | `도메인.keys.ts` |
+| Query Hook/Options 파일 | `도메인.query.ts` |
 | Query Key Factory | `도메인QueryKeys` |
 | Query Options | `도메인QueryOptions` |
 | Query Hook | `use도메인Query` |
@@ -268,6 +293,8 @@ whiteboardQueryOptions
 useWhiteboardQuery
 useCreateWhiteboardMutation
 ```
+
+query key와 mutation key는 `.query.ts` 안에 문자열 배열로 직접 작성하지 않고, `.keys.ts`의 factory 함수에서 생성합니다.
 
 ## Asset 네이밍
 
@@ -310,16 +337,22 @@ src/app/whiteboard/
 │   ├── useWhiteboard.ts
 │   └── useWhiteboard.test.ts
 ├── _api/
-│   └── whiteboard.api.ts
+│   ├── whiteboard.api.ts
+│   └── index.ts
 ├── _query/
-│   └── whiteboard.query.ts
+│   ├── whiteboard.keys.ts
+│   ├── whiteboard.query.ts
+│   └── index.ts
 ├── _utils/
 │   ├── calculateCanvasPosition.ts
-│   └── calculateCanvasPosition.test.ts
+│   ├── calculateCanvasPosition.test.ts
+│   └── index.ts
 ├── _types/
-│   └── whiteboard.type.ts
+│   ├── whiteboard.type.ts
+│   └── index.ts
 └── _constants/
-    └── tool.constants.ts
+    ├── tool.constants.ts
+    └── index.ts
 ```
 
 ## 요약
@@ -336,6 +369,8 @@ src/app/whiteboard/
 | 상수 | `.constants.ts` | `tool.constants.ts` |
 | 타입 | `.type.ts` | `whiteboard.type.ts` |
 | API | `.api.ts` | `whiteboard.api.ts` |
+| Query Key | `.keys.ts` | `whiteboard.keys.ts` |
 | Query | `.query.ts` | `whiteboard.query.ts` |
+| 폴더 export | `index.ts` | `_query/index.ts` |
 | Asset | `lowercase` 또는 `kebab-case` | `whiteboard-logo.svg` |
 | 테스트 | 대상 파일명 + `.test` | `ToolBar.test.tsx` |

@@ -61,8 +61,12 @@ src/app/페이지명/_query     # 해당 페이지 전용 query key/options/hook
 규칙:
 
 - 서버에서 가져온 데이터는 Zustand에 저장하지 않습니다.
-- query key는 문자열을 흩뿌리지 않고 factory 형태로 관리합니다.
-- query 함수는 직접 HTTP 요청을 작성하지 않고 `api` 계층의 함수를 호출합니다.
+- query key와 mutation key는 문자열 배열을 흩뿌리지 않고 `.keys.ts`의 factory 형태로 관리합니다.
+- `.query.ts`는 queryOptions/useQuery/useMutation을 정의하고, key는 `.keys.ts`에서 가져옵니다.
+- query/mutation 함수는 직접 HTTP 요청을 작성하지 않고 `api` 계층의 순수 요청 함수를 호출합니다.
+- component 안에서 `queryKey: ['domain', id]` 같은 raw key를 직접 작성하지 않습니다.
+- queryFn에서 사용하는 `id`, `filters`, `page`, `status` 같은 값은 반드시 query key에도 포함합니다.
+- mutation 성공 후 refetch/invalidation이 필요하면 `.keys.ts`의 key factory를 사용합니다.
 
 예시:
 
@@ -70,17 +74,45 @@ src/app/페이지명/_query     # 해당 페이지 전용 query key/options/hook
 import { queryOptions } from '@tanstack/react-query';
 import { getWhiteboard } from '@/common/api/whiteboard.api';
 
+// whiteboard.keys.ts
 export const whiteboardQueryKeys = {
   all: ['whiteboard'] as const,
-  detail: (id: string) => [...whiteboardQueryKeys.all, id] as const,
+  lists: () => [...whiteboardQueryKeys.all, 'list'] as const,
+  detail: (id: string) => [...whiteboardQueryKeys.all, 'detail', id] as const,
+  create: () => [...whiteboardQueryKeys.all, 'create'] as const,
 };
 
+// whiteboard.query.ts
 export function whiteboardQueryOptions(id: string) {
   return queryOptions({
     queryKey: whiteboardQueryKeys.detail(id),
     queryFn: () => getWhiteboard(id),
   });
 }
+```
+
+mutation도 같은 key factory를 사용합니다.
+
+```ts
+import { useMutation } from '@tanstack/react-query';
+import { createWhiteboard } from '../_api';
+import { whiteboardQueryKeys } from './whiteboard.keys';
+
+export function useCreateWhiteboardMutation() {
+  return useMutation({
+    mutationKey: whiteboardQueryKeys.create(),
+    mutationFn: createWhiteboard,
+  });
+}
+```
+
+권장 파일 구조:
+
+```text
+src/app/whiteboard/_query/
+├── whiteboard.keys.ts
+├── whiteboard.query.ts
+└── index.ts
 ```
 
 TanStack Query Provider 구성은 [Provider 구성 가이드](../architecture/provider-structure.md)를 따릅니다.

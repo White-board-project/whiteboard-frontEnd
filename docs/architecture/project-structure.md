@@ -27,7 +27,8 @@ src/
 │   │   ├── _query/
 │   │   ├── _utils/
 │   │   ├── _types/
-│   │   └── _constants/
+│   │   ├── _constants/
+│   │   └── 각 폴더의 index.ts
 │   │
 │   └── whiteboard/
 │       ├── page.tsx
@@ -94,15 +95,21 @@ src/app/whiteboard/
 ├── _hooks/
 │   └── useWhiteboard.ts
 ├── _api/
-│   └── whiteboard.api.ts
+│   ├── whiteboard.api.ts
+│   └── index.ts
 ├── _query/
-│   └── whiteboard.query.ts
+│   ├── whiteboard.keys.ts
+│   ├── whiteboard.query.ts
+│   └── index.ts
 ├── _utils/
-│   └── calculateCanvasPosition.ts
+│   ├── calculateCanvasPosition.ts
+│   └── index.ts
 ├── _types/
-│   └── whiteboard.type.ts
+│   ├── whiteboard.type.ts
+│   └── index.ts
 └── _constants/
-    └── tool.constants.ts
+    ├── tool.constants.ts
+    └── index.ts
 ```
 
 ### 페이지 내부 폴더 역할
@@ -122,6 +129,8 @@ src/app/whiteboard/
 `_components`, `_hooks`처럼 `_`로 시작하는 폴더는 라우트 경로로 사용하지 않는 내부 구현 폴더라는 의미를 줍니다.
 
 Next.js App Router에서 `_`로 시작하는 폴더는 Private Folder로 취급되어 라우팅 시스템에서 제외됩니다. 따라서 페이지 내부 구현을 `app` 폴더 안에 함께 두면서도 URL 경로와 명확히 분리할 수 있습니다.
+
+각 private folder와 그 하위 역할 폴더에는 `index.ts`를 두고, 폴더 밖에서 사용할 public export를 명시적으로 관리합니다. 예를 들어 `src/app/whiteboard/_query/index.ts`는 `whiteboard.keys.ts`와 `whiteboard.query.ts`에서 외부에 공개할 항목만 re-export합니다. 폴더 밖에서는 `./_query/whiteboard.query` 같은 세부 파일 경로가 아니라 `./_query`처럼 폴더 index를 import합니다.
 
 예를 들어 아래 구조에서 실제 라우트는 `/whiteboard` 하나이고, `_components`, `_hooks`, `_api`, `_query`, `_utils`, `_types`는 URL 경로가 되지 않습니다.
 
@@ -247,7 +256,7 @@ API 에러 처리는 [API 에러 처리 가이드](./api-error-handling.md)를 �
 
 ```text
 src/common/api       # 여러 페이지에서 재사용되는 순수 API 요청 함수
-src/common/query     # 여러 페이지에서 재사용되는 query key/options/hooks
+src/common/query     # 여러 페이지에서 재사용되는 query key/options/hooks와 QueryClient 설정
 
 src/app/페이지명/_api    # 해당 페이지 전용 순수 API 요청 함수
 src/app/페이지명/_query  # 해당 페이지 전용 query key/options/hooks
@@ -268,6 +277,17 @@ src/app/페이지명/_query  # 해당 페이지 전용 query key/options/hooks
 - `useWhiteboardQuery`, `useCreateWhiteboardMutation` 같은 서버 상태 hook 래퍼
 
 `query`에는 직접 `fetch` 호출을 흩뿌리지 않고, `api`의 순수 요청 함수를 가져와 사용합니다.
+
+`_query` 폴더는 역할별 파일을 분리합니다.
+
+```text
+src/app/whiteboard/_query/
+├── whiteboard.keys.ts  # query/mutation key factory
+├── whiteboard.query.ts # queryOptions/useQuery/useMutation 정의
+└── index.ts            # public export
+```
+
+query key와 mutation key는 hook 안에 문자열 배열로 직접 작성하지 않습니다. 반드시 `.keys.ts`의 factory에서 만들고, `.query.ts`는 그 key factory와 `_api`의 순수 요청 함수를 조합합니다.
 
 ## 코드 배치 기준
 
@@ -321,13 +341,13 @@ import { whiteboardQueryOptions } from '@/common/query/whiteboard.query';
 import { ROUTES } from '@/common/constants/routes';
 ```
 
-페이지 내부 전용 파일은 같은 페이지 폴더 안에서 상대 경로 또는 alias를 사용할 수 있습니다.
+페이지 내부 전용 파일은 같은 페이지 폴더 안에서 상대 경로를 사용합니다. private folder 경계를 넘을 때는 해당 폴더의 `index.ts`를 경유합니다.
 
 ```ts
-import { ToolBar } from './_components/ToolBar';
-import { useWhiteboard } from './_hooks/useWhiteboard';
-import { getWhiteboardDetail } from './_api/whiteboard.api';
-import { useWhiteboardDetailQuery } from './_query/whiteboard.query';
+import { ToolBar } from './_components';
+import { useWhiteboard } from './_hooks';
+import { getWhiteboardDetail } from './_api';
+import { useWhiteboardDetailQuery } from './_query';
 ```
 
 ## 권장 규칙
@@ -339,7 +359,9 @@ import { useWhiteboardDetailQuery } from './_query/whiteboard.query';
 5. `common`은 특정 페이지의 비즈니스 흐름을 알지 않도록 유지합니다.
 6. `store`는 서버 데이터가 아닌 클라이언트 전역 상태만 담당합니다.
 7. `api`는 순수 요청 함수, `query`는 query key/options/hooks를 담당하도록 섞지 않습니다.
-8. Server Component를 기본으로 사용하고, 상태/effect/브라우저 API가 필요한 경우에만 `"use client"`를 사용합니다.
+8. query key와 mutation key는 `.keys.ts`의 factory에서 만들고, `.query.ts`에서는 key factory를 사용합니다.
+9. private folder와 하위 역할 폴더는 `index.ts`에서 명시적 public export를 관리합니다.
+10. Server Component를 기본으로 사용하고, 상태/effect/브라우저 API가 필요한 경우에만 `"use client"`를 사용합니다.
 
 ## 초기 생성 순서
 
@@ -353,4 +375,5 @@ import { useWhiteboardDetailQuery } from './_query/whiteboard.query';
 4. `src/common/query/query-client.ts`, `src/common/api/client.ts`, `src/common/api/error.ts`를 생성합니다.
 5. 첫 페이지를 `src/app/페이지명/page.tsx` 형태로 생성합니다.
 6. 페이지 전용 기능이 생기면 `_components`, `_hooks`, `_api`, `_query`, `_utils`, `_types`, `_constants`를 추가합니다.
-7. 실제로 여러 페이지에서 재사용되는 코드만 `src/common`으로 이동합니다.
+7. 각 private folder의 `index.ts`를 만들고, `_query`에는 `.keys.ts`와 `.query.ts`를 분리합니다.
+8. 실제로 여러 페이지에서 재사용되는 코드만 `src/common`으로 이동합니다.

@@ -60,13 +60,13 @@ import { Button } from '../../../common/components/ui/Button';
 
 ## 페이지 내부 전용 import
 
-페이지 내부에서만 사용하는 `_components`, `_hooks`, `_api`, `_query`, `_utils`, `_types`, `_constants`는 같은 페이지 폴더 안에서 상대경로를 사용합니다.
+페이지 내부에서만 사용하는 `_components`, `_hooks`, `_api`, `_query`, `_utils`, `_types`, `_constants`는 같은 페이지 폴더 안에서 상대경로를 사용합니다. private folder 경계를 넘는 import는 해당 폴더의 `index.ts`를 경유합니다.
 
 ```ts
-import { ToolBar } from './_components/ToolBar';
-import { useWhiteboard } from './_hooks/useWhiteboard';
-import { getWhiteboardDetail } from './_api/whiteboard.api';
-import { useWhiteboardDetailQuery } from './_query/whiteboard.query';
+import { ToolBar } from './_components';
+import { useWhiteboard } from './_hooks';
+import { getWhiteboardDetail } from './_api';
+import { useWhiteboardDetailQuery } from './_query';
 ```
 
 이유:
@@ -74,6 +74,37 @@ import { useWhiteboardDetailQuery } from './_query/whiteboard.query';
 - 해당 코드가 페이지 내부 전용이라는 의도가 명확합니다.
 - 같은 route segment 안에서 파일 위치 관계를 쉽게 파악할 수 있습니다.
 - 페이지 전용 코드를 공용 코드처럼 오해하지 않게 합니다.
+
+## 폴더 index export 규칙
+
+페이지 private folder와 하위 역할 폴더는 `index.ts`에서 외부 공개 API를 관리합니다.
+
+```text
+src/app/workspace-access/
+├── _components/
+│   ├── screen/
+│   │   ├── WorkspaceAccessContainer.tsx
+│   │   └── index.ts
+│   └── index.ts
+├── _query/
+│   ├── workspace-access.keys.ts
+│   ├── workspace-access.query.ts
+│   └── index.ts
+└── _utils/
+    ├── workspace-access-path.ts
+    └── index.ts
+```
+
+`index.ts`는 명시적 re-export를 기본으로 합니다.
+
+```ts
+export { WorkspaceAccessContainer } from './WorkspaceAccessContainer';
+export type { WorkspaceAccessSubmitHandler } from './workspace-access.type';
+```
+
+무분별한 `export *`는 피합니다. 공개해야 하는 항목을 파일마다 명시해야 리뷰 시 public surface가 분명해지고, 의도하지 않은 내부 구현 export를 막을 수 있습니다.
+
+같은 폴더 내부 구현끼리는 자기 폴더의 `index.ts`에서 다시 import하지 않습니다. 내부 구현 간 의존성은 `./WorkspaceAccessPage`처럼 sibling 경로를 사용해 순환 import를 피합니다. 단, 폴더 밖에서 접근할 때는 `./_query`, `../_utils`처럼 폴더 index를 사용합니다.
 
 ## 페이지 내부에서 공용 모듈을 사용할 때
 
@@ -83,7 +114,7 @@ import { useWhiteboardDetailQuery } from './_query/whiteboard.query';
 import { Button } from '@/common/components/ui/Button';
 import { apiClient } from '@/common/api/client';
 
-import { ToolBar } from './_components/ToolBar';
+import { ToolBar } from './_components';
 ```
 
 즉, 기준은 다음과 같습니다.
@@ -121,6 +152,13 @@ import { ToolBar } from '@/app/whiteboard/_components/ToolBar';
 
 다른 페이지에서도 필요해진 코드는 `src/common`으로 이동한 뒤 import합니다.
 
+`index.ts`가 있어도 다른 페이지의 private folder를 import할 수 없습니다.
+
+```ts
+// 사용하지 않음
+import { ToolBar } from '@/app/whiteboard/_components';
+```
+
 ## 테스트 설정
 
 Vitest에서 `@/*` alias를 사용하려면 `vite-tsconfig-paths`를 사용합니다.
@@ -147,9 +185,10 @@ export default defineConfig({
 | 공용 컴포넌트 | alias | `@/common/components/ui/Button` |
 | 공용 API client | alias | `@/common/api/client` |
 | 공용 유틸 | alias | `@/common/utils/cn` |
-| 페이지 내부 컴포넌트 | 상대경로 | `./_components/ToolBar` |
-| 페이지 내부 훅 | 상대경로 | `./_hooks/useWhiteboard` |
-| 페이지 내부 API | 상대경로 | `./_api/whiteboard.api` |
+| 페이지 내부 컴포넌트 | 상대경로 + 폴더 index | `./_components` |
+| 페이지 내부 훅 | 상대경로 + 폴더 index | `./_hooks` |
+| 페이지 내부 API | 상대경로 + 폴더 index | `./_api` |
+| 페이지 내부 Query | 상대경로 + 폴더 index | `./_query` |
 | 다른 페이지의 private folder | import 금지 | `@/app/other/_components/...` 금지 |
 
 ## 요약
@@ -158,7 +197,8 @@ export default defineConfig({
 alias는 @/* 하나만 사용한다.
 @/*는 src/*를 가리킨다.
 공용 코드는 @/common/...으로 가져온다.
-페이지 내부 전용 코드는 ./_components/...처럼 상대경로로 가져온다.
+페이지 내부 전용 코드는 ./_components, ./_query처럼 폴더 index 경유 상대경로로 가져온다.
 ../../../common/... 같은 깊은 상대경로는 사용하지 않는다.
 다른 페이지의 _components/_hooks 등 private folder를 직접 import하지 않는다.
+index.ts는 명시적 re-export로 public export를 관리한다.
 ```

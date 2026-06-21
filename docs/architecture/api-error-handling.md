@@ -225,11 +225,16 @@ TanStack Query는 query function 또는 mutation function이 throw한 에러를 
 
 ```ts
 import { useQuery } from '@tanstack/react-query';
-import { getUser } from '../_api/user.api';
+import { getUser } from '../_api';
+
+const userQueryKeys = {
+  all: ['user'] as const,
+  detail: (userId: string) => [...userQueryKeys.all, 'detail', userId] as const,
+};
 
 export function useUserQuery(userId: string) {
   return useQuery({
-    queryKey: ['user', userId],
+    queryKey: userQueryKeys.detail(userId),
     queryFn: () => getUser(userId),
     enabled: Boolean(userId),
   });
@@ -240,16 +245,23 @@ queryOptions를 사용하는 경우:
 
 ```ts
 import { queryOptions } from '@tanstack/react-query';
-import { getUser } from '../_api/user.api';
+import { getUser } from '../_api';
+
+const userQueryKeys = {
+  all: ['user'] as const,
+  detail: (userId: string) => [...userQueryKeys.all, 'detail', userId] as const,
+};
 
 export function userQueryOptions(userId: string) {
   return queryOptions({
-    queryKey: ['user', userId],
+    queryKey: userQueryKeys.detail(userId),
     queryFn: () => getUser(userId),
     enabled: Boolean(userId),
   });
 }
 ```
+
+실제 기능 코드에서는 위 `userQueryKeys`를 `.keys.ts` 파일에 분리하고, `.query.ts`에서 가져와 사용합니다.
 
 ## UI에서 에러 소비
 
@@ -257,7 +269,7 @@ UI는 `isApiError`로 에러 타입을 좁힌 뒤 사용자에게 보여줄 메�
 
 ```tsx
 import { isApiError } from '@/common/api/error';
-import { useUserQuery } from './_query/user.query';
+import { useUserQuery } from './_query';
 
 export function UserProfile({ userId }: { userId: string }) {
   const { data, isPending, isError, error } = useUserQuery(userId);
