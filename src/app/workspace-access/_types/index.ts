@@ -1,0 +1,15 @@
+export type {
+    ActionCardProps,
+    BrandMarkProps,
+    CompleteWorkspaceAccessVerificationRequest,
+    FieldProps,
+    FlowType,
+    ResendWorkspaceAccessVerificationRequest,
+    SendCreateWorkspaceVerificationRequest,
+    SendJoinWorkspaceVerificationRequest,
+    VerificationLinkResponse,
+    VerificationPendingContext,
+    WorkspaceAccessSubmitHandler,
+    WorkspaceAccessVerificationResponse,
+    WorkspaceAccessView,
+} from "./workspace-access.type";
