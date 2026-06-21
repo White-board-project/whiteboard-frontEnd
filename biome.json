@@ -7,6 +7,7 @@
             "!.next",
             "!out",
             "!coverage",
+            "!.omx",
             "!playwright-report",
             "!test-results",
             "!pnpm-lock.yaml"
@@ -17,6 +18,11 @@
         "indentStyle": "space",
         "indentWidth": 4,
         "lineWidth": 100
+    },
+    "css": {
+        "parser": {
+            "tailwindDirectives": true
+        }
     },
     "linter": {
         "enabled": true,

@@ -7,6 +7,8 @@
 - 페이지 전용 구현은 해당 라우트 폴더 안의 `_components`, `_hooks`, `_api`, `_query`, `_utils`, `_types`, `_constants`에 둡니다.
 - 다른 페이지의 `_...` private folder를 직접 import하지 마세요. 여러 페이지에서 필요해지면 `src/common`으로 올린 뒤 사용합니다.
 - `src/common/api`와 `src/app/페이지명/_api`는 Next Route Handler가 아니라 외부 API를 호출하는 Axios 요청 함수 계층입니다.
+- 각 private folder와 하위 역할 폴더에는 `index.ts`를 두고 public export를 명시적으로 관리합니다. 폴더 밖에서는 세부 파일 경로가 아니라 폴더 index를 import합니다.
+- `_query`는 query key factory를 `.keys.ts`, query/options/mutation hook을 `.query.ts`, public export를 `index.ts`에 분리합니다.
 
 ## 구조 규칙
 
@@ -14,6 +16,9 @@
 - 페이지에 묶인 UI/상태/API/query/util/type/constant는 페이지 폴더 옆에 모읍니다. 예: `src/app/whiteboard/_components/ToolBar.tsx`.
 - `src/common/components`는 역할별로 `ui`, `layout`, `feedback`을 사용합니다. `src/common/components/common`처럼 의미가 중복되는 폴더는 만들지 않습니다.
 - `api` 파일은 순수 요청 함수만 담당하고, `useQuery`/`useMutation`은 `.query.ts` 파일에 둡니다.
+- query key는 문자열 배열을 hook 안에 직접 쓰지 말고 `.keys.ts`의 factory에서 생성합니다. mutation key도 같은 key factory를 사용합니다.
+- `index.ts`는 `export { Foo } from "./Foo"`, `export type { FooProps } from "./foo.type"`처럼 명시적 re-export를 기본으로 합니다. 무분별한 `export *`는 피합니다.
+- 폴더 밖 import는 폴더 index를 경유하되, 같은 폴더 내부 구현끼리는 자기 `index.ts`를 import하지 말고 sibling 경로를 사용해 순환 참조를 피합니다.
 - 서버 데이터 캐시는 TanStack Query가 담당합니다. Zustand는 모달/토글/선택값 같은 클라이언트 전용 상태에만 사용합니다.
 - Server Component를 기본으로 두고, 상태/effect/브라우저 API가 필요한 컴포넌트에만 `'use client'`를 붙입니다.
 
@@ -38,8 +43,8 @@
 
 - 이 repo는 ESLint/Prettier를 쓰지 않습니다. Biome이 formatting, lint, import organization을 담당합니다.
 - 현재 `biome.json`은 4-space indentation과 100자 line width입니다. 오래된 docs 예시는 2-space를 보여주므로 실제 config를 우선합니다.
-- alias는 `@/*` 하나뿐이고 `src/*`를 가리킵니다. 공용 코드는 `@/common/...`, 같은 페이지 내부 전용 코드는 `./_components/...`처럼 상대 경로를 사용합니다.
-- 컴포넌트 파일은 `PascalCase.tsx`, 훅은 `useCamelCase.ts`, store는 `.store.ts`, 타입은 `.type.ts`, 상수는 `.constants.ts`, API는 `.api.ts`, Query는 `.query.ts` suffix를 사용합니다.
+- alias는 `@/*` 하나뿐이고 `src/*`를 가리킵니다. 공용 코드는 `@/common/...`, 같은 페이지 내부 전용 코드는 `./_components`처럼 폴더 index 경유 상대 경로를 사용합니다.
+- 컴포넌트 파일은 `PascalCase.tsx`, 훅은 `useCamelCase.ts`, store는 `.store.ts`, 타입은 `.type.ts`, 상수는 `.constants.ts`, API는 `.api.ts`, Query는 `.query.ts`, Query Key는 `.keys.ts` suffix를 사용합니다.
 - Next.js 예약 파일(`page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, `not-found.tsx`)은 프레임워크 이름 그대로 둡니다.
 
 ## Provider/API/환경 gotcha
