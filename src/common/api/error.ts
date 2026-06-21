@@ -1,6 +1,6 @@
-import axios from 'axios';
+import axios from "axios";
 
-export type ApiErrorKind = 'http' | 'network' | 'timeout' | 'cancelled' | 'unknown';
+export type ApiErrorKind = "http" | "network" | "timeout" | "cancelled" | "unknown";
 
 export class ApiError extends Error {
     readonly kind: ApiErrorKind;
@@ -17,7 +17,7 @@ export class ApiError extends Error {
         cause?: unknown;
     }) {
         super(params.message, { cause: params.cause });
-        this.name = 'ApiError';
+        this.name = "ApiError";
         this.kind = params.kind;
         this.status = params.status;
         this.code = params.code;
@@ -34,10 +34,10 @@ export function normalizeApiError(error: unknown): ApiError {
         const status = error.response?.status;
         const payload = error.response?.data;
 
-        if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+        if (error.code === "ECONNABORTED" || error.code === "ETIMEDOUT") {
             return new ApiError({
-                message: '요청 시간이 초과되었습니다.',
-                kind: 'timeout',
+                message: "요청 시간이 초과되었습니다.",
+                kind: "timeout",
                 status,
                 code: error.code,
                 payload,
@@ -45,10 +45,10 @@ export function normalizeApiError(error: unknown): ApiError {
             });
         }
 
-        if (error.code === 'ERR_CANCELED') {
+        if (error.code === "ERR_CANCELED") {
             return new ApiError({
-                message: '요청이 취소되었습니다.',
-                kind: 'cancelled',
+                message: "요청이 취소되었습니다.",
+                kind: "cancelled",
                 status,
                 code: error.code,
                 payload,
@@ -58,16 +58,16 @@ export function normalizeApiError(error: unknown): ApiError {
 
         if (!error.response) {
             return new ApiError({
-                message: '네트워크 연결을 확인해주세요.',
-                kind: 'network',
+                message: "네트워크 연결을 확인해주세요.",
+                kind: "network",
                 code: error.code,
                 cause: error,
             });
         }
 
         return new ApiError({
-            message: extractErrorMessage(payload) ?? '요청 처리 중 오류가 발생했습니다.',
-            kind: 'http',
+            message: extractErrorMessage(payload) ?? "요청 처리 중 오류가 발생했습니다.",
+            kind: "http",
             status,
             code: error.code,
             payload,
@@ -78,24 +78,24 @@ export function normalizeApiError(error: unknown): ApiError {
     if (error instanceof Error) {
         return new ApiError({
             message: error.message,
-            kind: 'unknown',
+            kind: "unknown",
             cause: error,
         });
     }
 
     return new ApiError({
-        message: '알 수 없는 오류가 발생했습니다.',
-        kind: 'unknown',
+        message: "알 수 없는 오류가 발생했습니다.",
+        kind: "unknown",
         payload: error,
     });
 }
 
 function extractErrorMessage(payload: unknown): string | undefined {
     if (
-        typeof payload === 'object' &&
+        typeof payload === "object" &&
         payload !== null &&
-        'message' in payload &&
-        typeof payload.message === 'string'
+        "message" in payload &&
+        typeof payload.message === "string"
     ) {
         return payload.message;
     }

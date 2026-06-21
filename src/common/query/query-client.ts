@@ -1,4 +1,4 @@
-import { isServer, QueryClient } from '@tanstack/react-query';
+import { isServer, QueryClient } from "@tanstack/react-query";
 
 function createQueryClient() {
     return new QueryClient({
